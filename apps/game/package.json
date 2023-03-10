@@ -1,0 +1,8 @@
+{
+  "name": "game",
+  "type": "module",
+  "main": "main.js",
+  "dependencies": {
+    "@api/core": "workspace:*"
+  }
+}

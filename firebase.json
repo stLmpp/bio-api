@@ -1,0 +1,40 @@
+{
+  "functions": [
+    {
+      "source": "./apps/platform/dist",
+      "codebase": "platform",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log"
+      ],
+      "predeploy": [],
+      "runtime": "nodejs18"
+    },
+    {
+      "source": "./apps/game/dist",
+      "codebase": "game",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log"
+      ],
+      "predeploy": [],
+      "runtime": "nodejs18"
+    }
+  ],
+  "emulators": {
+    "functions": {
+      "port": 5001
+    },
+    "pubsub": {
+      "port": 8085
+    },
+    "ui": {
+      "enabled": true
+    },
+    "singleProjectMode": true
+  }
+}
