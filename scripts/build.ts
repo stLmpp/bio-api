@@ -104,37 +104,64 @@ export {api as '${packageJson.name}', ${queue_paths
   console.log(`[${app_name}] Build finished`);
 }
 
-const [apps, packages] = await Promise.all([
+async function get_all_apps(): Promise<string[]> {
+  return readdir('apps');
+}
+
+async function build_packages(pkgs?: string[]): Promise<void> {
+  pkgs ??= await readdir('packages');
+  await Promise.all(
+    pkgs.map((pkg) =>
+      spawnAsync('npm', ['--prefix', `packages/${pkg}`, 'run', 'build'], {
+        stdio: 'inherit',
+      })
+    )
+  );
+}
+
+async function build_apps(apps?: string[]): Promise<void> {
+  apps ??= await get_all_apps();
+  await Promise.all(apps.map((app) => generate_bundle_file(`apps/${app}`)));
+}
+
+async function build_database(): Promise<void> {
+  await spawnAsync('npm', ['run', 'prisma-generate'], { stdio: 'inherit' });
+}
+
+const [apps_initial, initial_packages] = await Promise.all([
   readdir('apps'),
   readdir('packages'),
 ]);
 console.log('Building packages');
-await Promise.all(
-  packages.map((pkg) =>
-    spawnAsync('npm', ['--prefix', `packages/${pkg}`, 'run', 'build'], {
-      stdio: 'inherit',
-    })
-  )
-);
+await build_packages();
 console.log('Building apps');
-await Promise.all(apps.map((app) => generate_bundle_file(`apps/${app}`)));
+await build_apps();
+console.log('Building database');
+await build_database();
 
 if (IS_WATCH_MODE || IS_DEV_MODE) {
   const watcher_apps = watch(
-    apps
+    apps_initial
       .map((app) => [`apps/${app}/src/http/**/*`, `apps/${app}/src/queue/*`])
       .flat(),
     { ignoreInitial: true }
   );
   const watcher_packages = watch(
-    packages.map((pkg) => `packages/${pkg}/src/**/*`),
+    initial_packages.map((pkg) => `packages/${pkg}/src/**/*`),
     { ignoreInitial: true }
   );
+  const watcher_prisma = watch('schema.prisma', { ignoreInitial: true });
   watcher_apps.on('all', async (_, path) => {
     queue$.next([...queue$.value, path]);
   });
-  watcher_packages.on('all', () => {
-    queue$.next([...apps]);
+  watcher_packages.on('all', async () => {
+    await build_packages();
+    queue$.next([...apps_initial]);
+  });
+  watcher_prisma.on('change', async () => {
+    await spawnAsync('npm', ['run', 'prisma-generate'], { stdio: 'inherit' });
+    await build_packages();
+    queue$.next([...apps_initial]);
   });
 
   const DEBOUNCE_TIME_MS = 200;
@@ -152,9 +179,7 @@ if (IS_WATCH_MODE || IS_DEV_MODE) {
       ),
       switchMap(async (paths) => {
         console.log('Changes detected, regenerating files');
-        await Promise.all(
-          paths.map((app) => generate_bundle_file(`apps/${app}`))
-        );
+        await build_apps(paths);
         console.log('------------------------');
         queue$.next([]);
       })

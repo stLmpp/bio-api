@@ -1,25 +1,22 @@
 import { httpConfig } from '@api/core';
+import { PlatformRepository } from '@api/database';
 import { StatusCodes } from 'http-status-codes';
 import { z } from 'zod';
 
 export default httpConfig({
-  request: {
-    query: z.object({
-      active: z.string(),
-    }),
-  },
+  request: {},
   response: z.array(
     z.object({
-      id: z.number(),
-      shortName: z.string(),
+      id: z.string(),
       name: z.string(),
     })
   ),
-  handler: () => {
-    console.log(2);
+  imports: [PlatformRepository],
+  handler: async (_, platformRepository) => {
+    const platforms = await platformRepository.findMany();
     return {
       statusCode: StatusCodes.OK,
-      data: [],
+      data: platforms,
     };
   },
 });

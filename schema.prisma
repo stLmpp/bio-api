@@ -1,0 +1,46 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Platform {
+  id                   String                 @id @db.VarChar(10)
+  name                 String                 @unique @db.VarChar(100)
+  platformGameMiniGame PlatformGameMiniGame[]
+}
+
+model Game {
+  id           String         @id @db.VarChar(10)
+  name         String         @unique @db.VarChar(100)
+  gameMiniGame GameMiniGame[]
+}
+
+model MiniGame {
+  id           Int            @id @default(autoincrement())
+  name         String         @unique @db.VarChar(100)
+  gameMiniGame GameMiniGame[]
+}
+
+model GameMiniGame {
+  id                   Int                    @id @default(autoincrement())
+  gameId               String                 @db.VarChar(10)
+  miniGameId           Int
+  game                 Game                   @relation(fields: [gameId], references: [id])
+  miniGame             MiniGame               @relation(fields: [miniGameId], references: [id])
+  platformGameMiniGame PlatformGameMiniGame[]
+
+  @@unique([miniGameId, gameId])
+}
+
+model PlatformGameMiniGame {
+  gameMiniGameId Int
+  platformId     String       @db.VarChar(10)
+  platform       Platform     @relation(fields: [platformId], references: [id])
+  gameMiniGame   GameMiniGame @relation(fields: [gameMiniGameId], references: [id])
+
+  @@unique([gameMiniGameId, platformId])
+}

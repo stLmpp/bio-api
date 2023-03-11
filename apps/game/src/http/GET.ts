@@ -1,4 +1,5 @@
 import { httpConfig } from '@api/core';
+import { GameRepository } from '@api/database';
 import { StatusCodes } from 'http-status-codes';
 import { z } from 'zod';
 
@@ -10,16 +11,16 @@ export default httpConfig({
   },
   response: z.array(
     z.object({
-      id: z.number(),
-      shortName: z.string(),
+      id: z.string(),
       name: z.string(),
     })
   ),
-  handler: () => {
-    console.log(2);
+  imports: [GameRepository],
+  handler: async (_, gameRepository) => {
+    const games = await gameRepository.findMany();
     return {
       statusCode: StatusCodes.OK,
-      data: [],
+      data: games,
     };
   },
 });

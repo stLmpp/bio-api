@@ -2,7 +2,11 @@
   "name": "game",
   "type": "module",
   "main": "main.js",
+  "scripts": {
+    "prisma-generate": "pnpm exec prisma generate"
+  },
   "dependencies": {
-    "@api/core": "workspace:*"
+    "@api/core": "workspace:*",
+    "@api/database": "workspace:*"
   }
 }
