@@ -14,7 +14,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsx generate-repositories.ts && tsup"
+    "build": "tsx generate.ts && tsup"
   },
   "dependencies": {
     "@api/core": "workspace:*"
