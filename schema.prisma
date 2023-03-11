@@ -8,39 +8,232 @@ generator client {
 }
 
 model Platform {
-  id                   String                 @id @db.VarChar(10)
-  name                 String                 @unique @db.VarChar(100)
+  id           String   @id @db.VarChar(10)
+  name         String   @unique @db.VarChar(100)
+  creationDate DateTime @default(now())
+
   platformGameMiniGame PlatformGameMiniGame[]
+  platformInputType    PlatformInputType[]
 }
 
 model Game {
-  id           String         @id @db.VarChar(10)
-  name         String         @unique @db.VarChar(100)
+  id           String   @id @db.VarChar(10)
+  name         String   @unique @db.VarChar(100)
+  creationDate DateTime @default(now())
+
   gameMiniGame GameMiniGame[]
 }
 
 model MiniGame {
-  id           Int            @id @default(autoincrement())
-  name         String         @unique @db.VarChar(100)
+  id           Int      @id @default(autoincrement())
+  name         String   @unique @db.VarChar(100)
+  creationDate DateTime @default(now())
+
   gameMiniGame GameMiniGame[]
 }
 
+model InputType {
+  id           Int      @id @default(autoincrement())
+  name         String   @db.VarChar(100)
+  creationDate DateTime @default(now())
+
+  platformInputType PlatformInputType[]
+  player            Player[]
+}
+
+model Mode {
+  id             String   @id @db.VarChar(50)
+  playerQuantity Int      @db.SmallInt()
+  creationDate   DateTime @default(now())
+
+  platformGameMiniGameMode PlatformGameMiniGameMode[]
+}
+
+model Stage {
+  id           Int      @id @default(autoincrement())
+  name         String   @db.VarChar(100)
+  shortName    String   @db.VarChar(20)
+  creationDate DateTime @default(now())
+
+  platformGameMiniGameModeStage PlatformGameMiniGameModeStage[]
+}
+
+model Character {
+  id           String   @id @db.VarChar(100)
+  creationDate DateTime @default(now())
+
+  characterCostume CharacterCostume[]
+}
+
+model CharacterCostume {
+  id           Int      @id @default(autoincrement())
+  name         String   @unique @db.VarChar(100)
+  shortName    String   @db.VarChar(20)
+  characterId  String   @db.VarChar(100)
+  creationDate DateTime @default(now())
+
+  character Character @relation(fields: [characterId], references: [id])
+
+  platformGameMiniGameModeCharacterCostume PlatformGameMiniGameModeCharacterCostume[]
+}
+
 model GameMiniGame {
-  id                   Int                    @id @default(autoincrement())
-  gameId               String                 @db.VarChar(10)
-  miniGameId           Int
-  game                 Game                   @relation(fields: [gameId], references: [id])
-  miniGame             MiniGame               @relation(fields: [miniGameId], references: [id])
+  id           Int      @id @default(autoincrement())
+  gameId       String   @db.VarChar(10)
+  miniGameId   Int
+  creationDate DateTime @default(now())
+
+  game     Game     @relation(fields: [gameId], references: [id])
+  miniGame MiniGame @relation(fields: [miniGameId], references: [id])
+
   platformGameMiniGame PlatformGameMiniGame[]
 
   @@unique([miniGameId, gameId])
 }
 
 model PlatformGameMiniGame {
+  id             Int      @id @default(autoincrement())
   gameMiniGameId Int
-  platformId     String       @db.VarChar(10)
-  platform       Platform     @relation(fields: [platformId], references: [id])
-  gameMiniGame   GameMiniGame @relation(fields: [gameMiniGameId], references: [id])
+  platformId     String   @db.VarChar(10)
+  creationDate   DateTime @default(now())
+
+  platform     Platform     @relation(fields: [platformId], references: [id])
+  gameMiniGame GameMiniGame @relation(fields: [gameMiniGameId], references: [id])
+
+  platformGameMiniGameMode PlatformGameMiniGameMode[]
 
   @@unique([gameMiniGameId, platformId])
+}
+
+model PlatformGameMiniGameMode {
+  id                     Int      @id @default(autoincrement())
+  platformGameMiniGameId Int
+  modeId                 String   @db.VarChar(100)
+  creationDate           DateTime @default(now())
+
+  mode                 Mode                 @relation(fields: [modeId], references: [id])
+  platformGameMiniGame PlatformGameMiniGame @relation(fields: [platformGameMiniGameId], references: [id])
+
+  platformGameMiniGameModeCharacterCostume PlatformGameMiniGameModeCharacterCostume[]
+  platformGameMiniGameModeStage            PlatformGameMiniGameModeStage[]
+
+  @@unique([platformGameMiniGameId, modeId])
+}
+
+model PlatformGameMiniGameModeCharacterCostume {
+  id                         Int      @id @default(autoincrement())
+  platformGameMiniGameModeId Int
+  characterCostumeId         Int
+  creationDate               DateTime @default(now())
+
+  characterCostume         CharacterCostume         @relation(fields: [characterCostumeId], references: [id])
+  platformGameMiniGameMode PlatformGameMiniGameMode @relation(fields: [platformGameMiniGameModeId], references: [id])
+
+  scorePlayer ScorePlayer[]
+
+  @@unique([platformGameMiniGameModeId, characterCostumeId])
+}
+
+model PlatformGameMiniGameModeStage {
+  id                         Int      @id @default(autoincrement())
+  platformGameMiniGameModeId Int
+  stageId                    Int
+  creationDate               DateTime @default(now())
+
+  platformGameMiniGameMode PlatformGameMiniGameMode @relation(fields: [platformGameMiniGameModeId], references: [id])
+  stage                    Stage                    @relation(fields: [stageId], references: [id])
+
+  score Score[]
+
+  @@unique([platformGameMiniGameModeId, stageId])
+}
+
+model PlatformInputType {
+  id           Int      @id @default(autoincrement())
+  platformId   String   @db.VarChar(10)
+  inputTypeId  Int
+  creationDate DateTime @default(now())
+
+  platform  Platform  @relation(fields: [platformId], references: [id])
+  inputType InputType @relation(fields: [inputTypeId], references: [id])
+
+  scorePlayer ScorePlayer[]
+
+  @@unique([platformId, inputTypeId])
+}
+
+model Region {
+  id           String   @id @db.VarChar(20)
+  name         String   @db.VarChar(100)
+  creationDate DateTime @default(now())
+
+  player Player[]
+}
+
+model Player {
+  id                  BigInt   @id @default(autoincrement())
+  name                String   @unique @db.VarChar(50)
+  preferedInputTypeId Int
+  regionId            String   @db.VarChar(20)
+  creationDate        DateTime @default(now())
+
+  preferedInputType InputType @relation(fields: [preferedInputTypeId], references: [id])
+  region            Region    @relation(fields: [regionId], references: [id])
+
+  score       Score[]
+  scorePlayer ScorePlayer[]
+}
+
+model Score {
+  id                              BigInt   @id @default(autoincrement())
+  platformGameMiniGameModeStageId Int
+  createdByPlayerId               BigInt
+  score                           Float
+  creationDate                    DateTime @default(now())
+
+  maxCombo     Int?      @db.SmallInt()
+  time         String?   @db.VarChar(8)
+  achievedDate DateTime?
+
+  platformGameMiniGameModeStage PlatformGameMiniGameModeStage @relation(fields: [platformGameMiniGameModeStageId], references: [id])
+  createdByPlayer               Player                        @relation(fields: [createdByPlayerId], references: [id])
+
+  scorePlayer ScorePlayer[]
+}
+
+model ScorePlayer {
+  id                                         BigInt   @id @default(autoincrement())
+  scoreId                                    BigInt
+  playerId                                   BigInt
+  platformGameMiniGameModeCharacterCostumeId Int
+  host                                       Boolean
+  creationDate                               DateTime @default(now())
+
+  bulletKills         Int?    @db.SmallInt()
+  description         String? @db.VarChar(500)
+  platformInputTypeId Int?
+
+  score                                    Score                                    @relation(fields: [scoreId], references: [id])
+  player                                   Player                                   @relation(fields: [playerId], references: [id])
+  platformGameMiniGameModeCharacterCostume PlatformGameMiniGameModeCharacterCostume @relation(fields: [platformGameMiniGameModeCharacterCostumeId], references: [id])
+
+  platformInputType PlatformInputType? @relation(fields: [platformInputTypeId], references: [id])
+
+  scoreWorldRecord ScoreWorldRecord[]
+}
+
+model ScoreWorldRecord {
+  id            BigInt               @id @default(autoincrement())
+  scorePlayerId BigInt
+  creationDate  DateTime             @default(now())
+  type          ScoreWorldRecordType
+
+  endDate DateTime?
+
+  scorePlayer ScorePlayer @relation(fields: [scorePlayerId], references: [id])
+}
+
+enum ScoreWorldRecordType {
+  WordRecord
+  CharacterWorldRecord
 }

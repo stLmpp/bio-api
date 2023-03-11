@@ -43,3 +43,4 @@ ui-debug.log
 firepit-log.txt
 pubsub-debug.log
 firebase-debug.log
+.env
