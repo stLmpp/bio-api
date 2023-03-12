@@ -1,11 +1,18 @@
 import { spawn } from 'node:child_process';
 import { readdir, readFile, rm, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 
 import { watch } from 'chokidar';
 import { build } from 'esbuild';
 import fastGlob from 'fast-glob';
-import { BehaviorSubject, debounceTime, filter, map, switchMap } from 'rxjs';
+import {
+  BehaviorSubject,
+  debounceTime,
+  filter,
+  map,
+  Subject,
+  switchMap,
+} from 'rxjs';
 import { type PackageJson } from 'type-fest';
 
 import { spawnAsync } from './util.js';
@@ -108,20 +115,32 @@ async function get_all_apps(): Promise<string[]> {
   return readdir('apps');
 }
 
+const packages_order: Record<string, number> = {
+  core: 1,
+  database: 2,
+};
+
 async function build_packages(pkgs?: string[]): Promise<void> {
   pkgs ??= await readdir('packages');
-  await Promise.all(
-    pkgs.map((pkg) =>
-      spawnAsync('npm', ['--prefix', `packages/${pkg}`, 'run', 'build'], {
-        stdio: 'inherit',
-      })
-    )
+  pkgs = [...pkgs].sort(
+    (pkgA, pkgB) => packages_order[pkgA] - packages_order[pkgB]
   );
+  for (const pkg of pkgs) {
+    await spawnAsync('npm', ['--prefix', `packages/${pkg}`, 'run', 'build'], {
+      stdio: 'inherit',
+    });
+  }
 }
 
 async function build_apps(apps?: string[]): Promise<void> {
   apps ??= await get_all_apps();
-  await Promise.all(apps.map((app) => generate_bundle_file(`apps/${app}`)));
+  await Promise.all(
+    apps.map((app) =>
+      generate_bundle_file(`apps/${app}`).catch(() => {
+        console.error(`[${app}] Failed to build`);
+      })
+    )
+  );
 }
 
 async function build_database(): Promise<void> {
@@ -132,39 +151,66 @@ const [apps_initial, initial_packages] = await Promise.all([
   readdir('apps'),
   readdir('packages'),
 ]);
+console.log('Building database');
+await build_database();
 console.log('Building packages');
 await build_packages();
 console.log('Building apps');
 await build_apps();
-console.log('Building database');
-await build_database();
 
 if (IS_WATCH_MODE || IS_DEV_MODE) {
   const watcher_apps = watch(
-    apps_initial
-      .map((app) => [`apps/${app}/src/http/**/*`, `apps/${app}/src/queue/*`])
-      .flat(),
+    apps_initial.map((app) => `apps/${app}/src/**/*`),
     { ignoreInitial: true }
   );
   const watcher_packages = watch(
     initial_packages.map((pkg) => `packages/${pkg}/src/**/*`),
-    { ignoreInitial: true }
+    {
+      ignoreInitial: true,
+      ignored: (path) => basename(path).startsWith('__auto__'),
+    }
   );
   const watcher_prisma = watch('schema.prisma', { ignoreInitial: true });
   watcher_apps.on('all', async (_, path) => {
+    console.log({ watcher_apps: path });
     queue$.next([...queue$.value, path]);
   });
-  watcher_packages.on('all', async () => {
-    await build_packages();
-    queue$.next([...apps_initial]);
+  watcher_packages.on('all', async (_, path) => {
+    console.log({ watcher_packages: path });
+    packages_queue$.next();
   });
   watcher_prisma.on('change', async () => {
-    await spawnAsync('npm', ['run', 'prisma-generate'], { stdio: 'inherit' });
-    await build_packages();
-    queue$.next([...apps_initial]);
+    console.log('watcher_prisma');
+    prisma_queue$.next();
   });
 
   const DEBOUNCE_TIME_MS = 200;
+
+  const packages_queue$ = new Subject<void>();
+
+  packages_queue$
+    .pipe(
+      debounceTime(DEBOUNCE_TIME_MS),
+      switchMap(async () => {
+        await build_packages();
+        queue$.next([...apps_initial]);
+      })
+    )
+    .subscribe();
+
+  const prisma_queue$ = new Subject<void>();
+
+  prisma_queue$
+    .pipe(
+      debounceTime(DEBOUNCE_TIME_MS),
+      switchMap(async () => {
+        await spawnAsync('npm', ['run', 'prisma-generate'], {
+          stdio: 'inherit',
+        });
+        packages_queue$.next();
+      })
+    )
+    .subscribe();
 
   const queue$ = new BehaviorSubject<string[]>([]);
   queue$
@@ -191,7 +237,7 @@ if (IS_WATCH_MODE || IS_DEV_MODE) {
 
 if (IS_DEV_MODE) {
   console.log('Starting firebase emulators');
-  spawn('firebase emulators:start --only functions,pubsub', {
+  spawn('firebase emulators:start --only functions,pubsub,auth', {
     stdio: 'inherit',
     shell: true,
   });

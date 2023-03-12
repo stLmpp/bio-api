@@ -8,7 +8,7 @@ const api_config_handler_schema = z.function().args(
     params: z.record(z.string()),
     query: z.record(z.string()),
     headers: z.record(z.string()),
-    body: z.any().optional(),
+    body: z.record(z.any()).or(z.array(z.any())),
   })
 );
 
@@ -23,7 +23,9 @@ export const api_config_http_handler_return_schema =
   );
 
 export const http_config_schema = z.object({
-  handler: api_config_handler_schema.returns(api_config_http_handler_return_schema),
+  handler: api_config_handler_schema.returns(
+    api_config_http_handler_return_schema
+  ),
   request: z
     .object({
       params: z_type.optional(),
@@ -50,12 +52,15 @@ export function httpConfig<
   Body extends ZodType,
   Response extends ZodType
 >(
-  config: Except<HttpConfigInput, 'handler' | 'request' | 'response' | 'imports'> & {
+  config: Except<
+    HttpConfigInput,
+    'handler' | 'request' | 'response' | 'imports'
+  > & {
     handler: (request: {
       params: z.infer<Params>;
       query: z.infer<Query>;
       headers: z.infer<Headers>;
-      body?: z.infer<Body>;
+      body: z.infer<Body>;
     }) =>
       | { statusCode: number; data: z.input<Response> }
       | Promise<{ statusCode: number; data: z.input<Response> }>;

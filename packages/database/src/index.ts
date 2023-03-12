@@ -1,1 +1,1 @@
-export * from './repositories.js';
+export * from './__auto__repositories.js';

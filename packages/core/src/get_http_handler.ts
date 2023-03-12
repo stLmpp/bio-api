@@ -15,7 +15,7 @@ interface InternalHttpHandler {
 
 function parse_path(path: string) {
   const path_array = path
-    .replace(/^src\/http/, '')
+    .replace(/^.*src\/http/, '')
     .split('/')
     .map((part) => part.replace(/^\[/, ':').replace(/]$/, ''));
   const method = path_array.pop()!.toLowerCase().replace(/\.ts$/, '');
@@ -62,14 +62,14 @@ export async function get_http_handler(
           format_headers(req.headers)
         ); // TODO safeParse
       }
-      let body: unknown | undefined = undefined;
+      let body: unknown = undefined;
       if (method_has_body(method) && config.request?.body) {
         body = await config.request.body.parseAsync(req.body);
       }
       const { statusCode, data } = await config.handler(
         {
           params,
-          body,
+          body, // TODO fix typing
           headers,
           query,
         },

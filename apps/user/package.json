@@ -1,5 +1,5 @@
 {
-  "name": "game",
+  "name": "user",
   "type": "module",
   "main": "main.js",
   "scripts": {},

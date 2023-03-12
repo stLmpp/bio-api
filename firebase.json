@@ -23,6 +23,18 @@
       ],
       "predeploy": [],
       "runtime": "nodejs18"
+    },
+    {
+      "source": "./apps/user/dist",
+      "codebase": "user",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log"
+      ],
+      "predeploy": [],
+      "runtime": "nodejs18"
     }
   ],
   "emulators": {
@@ -34,6 +46,9 @@
     },
     "ui": {
       "enabled": true
+    },
+    "auth": {
+      "port": 9099
     },
     "singleProjectMode": true
   }

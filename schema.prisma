@@ -171,14 +171,18 @@ model Region {
 }
 
 model Player {
-  id                  BigInt   @id @default(autoincrement())
-  name                String   @unique @db.VarChar(50)
-  preferedInputTypeId Int
-  regionId            String   @db.VarChar(20)
-  creationDate        DateTime @default(now())
+  id           BigInt   @id @default(autoincrement())
+  name         String   @unique @db.VarChar(50)
+  regionId     String   @db.VarChar(20)
+  creationDate DateTime @default(now())
 
-  preferedInputType InputType @relation(fields: [preferedInputTypeId], references: [id])
-  region            Region    @relation(fields: [regionId], references: [id])
+  preferedInputTypeId Int?
+  userId              String? @unique @db.VarChar(36)
+
+  region Region @relation(fields: [regionId], references: [id])
+
+  preferedInputType InputType? @relation(fields: [preferedInputTypeId], references: [id])
+  user              User?      @relation(fields: [userId], references: [id])
 
   score       Score[]
   scorePlayer ScorePlayer[]
@@ -231,6 +235,14 @@ model ScoreWorldRecord {
   endDate DateTime?
 
   scorePlayer ScorePlayer @relation(fields: [scorePlayerId], references: [id])
+}
+
+model User {
+  id    String @id @db.VarChar(36)
+  name  String @unique @db.VarChar(50)
+  email String @unique @db.VarChar(254)
+
+  player Player?
 }
 
 enum ScoreWorldRecordType {

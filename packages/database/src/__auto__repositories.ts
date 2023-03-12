@@ -1,3 +1,5 @@
+// ##### AUTO-GENERATED
+
 import { MAIN_INJECTOR } from '@api/core';
 import { PrismaClient } from '@prisma/client';
 import { ValueProvider } from '@stlmpp/di';
@@ -42,5 +44,7 @@ export class ScoreRepository extends createRepository('score') {}
 export class ScorePlayerRepository extends createRepository('scorePlayer') {}
 @Repository()
 export class ScoreWorldRecordRepository extends createRepository('scoreWorldRecord') {}
+@Repository()
+export class UserRepository extends createRepository('user') {}
 
 MAIN_INJECTOR.register([new ValueProvider(PrismaClient, new PrismaClient())]);

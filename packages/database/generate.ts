@@ -7,7 +7,9 @@ const match = prisma_schema.match(/(?<=model )\w+/g);
 if (!match) {
   throw new Error('Not entities found');
 }
-const file_content = `import { MAIN_INJECTOR } from '@api/core';
+const file_content = `// ##### AUTO-GENERATED
+
+import { MAIN_INJECTOR } from '@api/core';
 import { PrismaClient } from '@prisma/client';
 import { ValueProvider } from '@stlmpp/di';
 
@@ -24,4 +26,4 @@ export class ${repository}Repository extends createRepository('${
 
 MAIN_INJECTOR.register([new ValueProvider(PrismaClient, new PrismaClient())]);
 `;
-await writeFile('src/repositories.ts', file_content);
+await writeFile('src/__auto__repositories.ts', file_content);

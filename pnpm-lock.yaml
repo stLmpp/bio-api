@@ -71,6 +71,14 @@ importers:
       '@api/core': link:../../packages/core
       '@api/database': link:../../packages/database
 
+  apps/user:
+    specifiers:
+      '@api/core': workspace:*
+      '@api/database': workspace:*
+    dependencies:
+      '@api/core': link:../../packages/core
+      '@api/database': link:../../packages/database
+
   packages/core:
     specifiers:
       '@types/compression': ^1.7.2
