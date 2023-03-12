@@ -19,9 +19,9 @@ export function Repository() {
     MAIN_INJECTOR.register(
       new FactoryProvider(
         target,
-        (prismaClient) => {
+        (prismaClient: PrismaClient) => {
           const key: keyof PrismaClient = (target as never)[repositorySymbol];
-          return (prismaClient as PrismaClient)[key];
+          return prismaClient[key];
         },
         [PrismaClient]
       )

@@ -1,3 +1,3 @@
-import { Injector } from '@stlmpp/di';
+import { ROOT_INJECTOR } from '@stlmpp/di';
 
-export const MAIN_INJECTOR = Injector.create('Main');
+export const MAIN_INJECTOR = ROOT_INJECTOR;
