@@ -2,6 +2,7 @@
   "name": "platform",
   "type": "module",
   "main": "main.js",
+  "sideEffects": false,
   "dependencies": {
     "@api/core": "workspace:*",
     "@api/database": "workspace:*"

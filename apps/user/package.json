@@ -3,6 +3,7 @@
   "type": "module",
   "main": "main.js",
   "scripts": {},
+  "sideEffects": false,
   "dependencies": {
     "@api/core": "workspace:*",
     "@api/database": "workspace:*"

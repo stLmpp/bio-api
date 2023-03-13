@@ -37,6 +37,8 @@ export class PlatformInputTypeRepository extends createRepository('platformInput
 @Repository()
 export class RegionRepository extends createRepository('region') {}
 @Repository()
+export class UserRepository extends createRepository('user') {}
+@Repository()
 export class PlayerRepository extends createRepository('player') {}
 @Repository()
 export class ScoreRepository extends createRepository('score') {}
@@ -44,7 +46,5 @@ export class ScoreRepository extends createRepository('score') {}
 export class ScorePlayerRepository extends createRepository('scorePlayer') {}
 @Repository()
 export class ScoreWorldRecordRepository extends createRepository('scoreWorldRecord') {}
-@Repository()
-export class UserRepository extends createRepository('user') {}
 
 MAIN_INJECTOR.register([new ValueProvider(PrismaClient, new PrismaClient())]);

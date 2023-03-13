@@ -90,7 +90,7 @@ export {api as '${packageJson.name}', ${queue_paths
     ...Object.keys(packageJson.dependencies ?? {}),
     ...Object.keys(rootPackageJson.dependencies ?? {}),
     ...Object.keys(corePackageJson.dependencies ?? {}),
-  ];
+  ].filter((pkg) => !pkg.startsWith('@api/'));
   await writeFile(`${path}/src/__auto__main.ts`, fileContent);
   console.log(`[${app_name}] main.ts created`);
   await build({
@@ -102,6 +102,9 @@ export {api as '${packageJson.name}', ${queue_paths
     platform: 'node',
     minify: true,
     external: dependencies,
+    define: {
+      DEV_MODE: String(IS_DEV_MODE),
+    },
   });
   console.log(`[${app_name}] Bundle finished`);
   await Promise.all([

@@ -194,19 +194,30 @@ model Region {
   @@map("region")
 }
 
+model User {
+  id    String @id @db.VarChar(100)
+  name  String @unique @db.VarChar(50)
+  email String @unique @db.VarChar(254)
+
+  playerId BigInt @unique
+
+  player Player @relation(fields: [playerId], references: [id])
+
+  @@map("user")
+}
+
 model Player {
   id           BigInt   @id @default(autoincrement())
   name         String   @unique @db.VarChar(50)
   regionId     String   @map("region_id") @db.VarChar(20)
   creationDate DateTime @default(now()) @map("creation_date")
 
-  preferedInputTypeId Int?    @map("prefered_input_type_id")
-  userId              String? @unique @map("user_id") @db.VarChar(36)
+  preferedInputTypeId Int? @map("prefered_input_type_id")
 
   region Region @relation(fields: [regionId], references: [id])
 
   preferedInputType InputType? @relation(fields: [preferedInputTypeId], references: [id])
-  user              User?      @relation(fields: [userId], references: [id])
+  user              User?
 
   score       Score[]
   scorePlayer ScorePlayer[]
@@ -267,16 +278,6 @@ model ScoreWorldRecord {
   scorePlayer ScorePlayer @relation(fields: [scorePlayerId], references: [id])
 
   @@map("score_world_record")
-}
-
-model User {
-  id    String @id @db.VarChar(100)
-  name  String @unique @db.VarChar(50)
-  email String @unique @db.VarChar(254)
-
-  player Player?
-
-  @@map("user")
 }
 
 enum ScoreWorldRecordType {

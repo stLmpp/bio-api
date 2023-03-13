@@ -17,7 +17,6 @@ import { error_middleware } from './error-middleware.js';
 import { get_http_handler } from './get_http_handler.js';
 import { get_queue_handler } from './get_queue_handler.js';
 import { type HttpEndPoint } from './http-end-point.type.js';
-import { isDev } from './is-dev.js';
 import { not_found_middleware } from './not-found-middleware.js';
 import { format_openapi_end_point } from './openapi/format-openapi-end-point.js';
 import { get_openapi } from './openapi/get-openapi.js';
@@ -64,7 +63,7 @@ export async function createHttpHandler(
     .use(compression())
     .use(helmet())
     .use(router);
-  if (isDev()) {
+  if (DEV_MODE) {
     app
       .get('/help/openapi.json', (req, res) => {
         res.status(StatusCodes.OK).send(openapi_object);

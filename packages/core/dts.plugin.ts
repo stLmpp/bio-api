@@ -121,10 +121,12 @@ function create_http_declaration(serviceNumber: number): string[] {
   });
 }
 
-const new_queue_lines = Array.from({ length: 30 }, (_, index) =>
+const OVERLOAD_QUANTITY = 8;
+
+const new_queue_lines = Array.from({ length: OVERLOAD_QUANTITY }, (_, index) =>
   create_queue_declaration(index + 1)
 ).flat();
-const new_http_lines = Array.from({ length: 30 }, (_, index) =>
+const new_http_lines = Array.from({ length: OVERLOAD_QUANTITY }, (_, index) =>
   create_http_declaration(index + 1)
 ).flat();
 
