@@ -14,6 +14,8 @@ model Platform {
 
   platformGameMiniGame PlatformGameMiniGame[]
   platformInputType    PlatformInputType[]
+
+  @@map("platform")
 }
 
 model Game {
@@ -22,6 +24,8 @@ model Game {
   creationDate DateTime @default(now())
 
   gameMiniGame GameMiniGame[]
+
+  @@map("game")
 }
 
 model MiniGame {
@@ -30,6 +34,8 @@ model MiniGame {
   creationDate DateTime @default(now())
 
   gameMiniGame GameMiniGame[]
+
+  @@map("mini_game")
 }
 
 model InputType {
@@ -39,6 +45,8 @@ model InputType {
 
   platformInputType PlatformInputType[]
   player            Player[]
+
+  @@map("input_type")
 }
 
 model Mode {
@@ -47,6 +55,8 @@ model Mode {
   creationDate   DateTime @default(now())
 
   platformGameMiniGameMode PlatformGameMiniGameMode[]
+
+  @@map("mode")
 }
 
 model Stage {
@@ -56,6 +66,8 @@ model Stage {
   creationDate DateTime @default(now())
 
   platformGameMiniGameModeStage PlatformGameMiniGameModeStage[]
+
+  @@map("stage")
 }
 
 model Character {
@@ -63,6 +75,8 @@ model Character {
   creationDate DateTime @default(now())
 
   characterCostume CharacterCostume[]
+
+  @@map("character")
 }
 
 model CharacterCostume {
@@ -75,6 +89,8 @@ model CharacterCostume {
   character Character @relation(fields: [characterId], references: [id])
 
   platformGameMiniGameModeCharacterCostume PlatformGameMiniGameModeCharacterCostume[]
+
+  @@map("character_costume")
 }
 
 model GameMiniGame {
@@ -89,6 +105,7 @@ model GameMiniGame {
   platformGameMiniGame PlatformGameMiniGame[]
 
   @@unique([miniGameId, gameId])
+  @@map("game_mini_game")
 }
 
 model PlatformGameMiniGame {
@@ -103,6 +120,7 @@ model PlatformGameMiniGame {
   platformGameMiniGameMode PlatformGameMiniGameMode[]
 
   @@unique([gameMiniGameId, platformId])
+  @@map("platform_game_mini_game")
 }
 
 model PlatformGameMiniGameMode {
@@ -118,6 +136,7 @@ model PlatformGameMiniGameMode {
   platformGameMiniGameModeStage            PlatformGameMiniGameModeStage[]
 
   @@unique([platformGameMiniGameId, modeId])
+  @@map("platform_game_mini_game_mode")
 }
 
 model PlatformGameMiniGameModeCharacterCostume {
@@ -132,6 +151,7 @@ model PlatformGameMiniGameModeCharacterCostume {
   scorePlayer ScorePlayer[]
 
   @@unique([platformGameMiniGameModeId, characterCostumeId])
+  @@map("platform_game_mini_game_mode_character_costume")
 }
 
 model PlatformGameMiniGameModeStage {
@@ -146,6 +166,7 @@ model PlatformGameMiniGameModeStage {
   score Score[]
 
   @@unique([platformGameMiniGameModeId, stageId])
+  @@map("platform_game_mini_game_mode_stage")
 }
 
 model PlatformInputType {
@@ -160,6 +181,7 @@ model PlatformInputType {
   scorePlayer ScorePlayer[]
 
   @@unique([platformId, inputTypeId])
+  @@map("platform_input_type")
 }
 
 model Region {
@@ -168,6 +190,8 @@ model Region {
   creationDate DateTime @default(now())
 
   player Player[]
+
+  @@map("region")
 }
 
 model Player {
@@ -186,6 +210,8 @@ model Player {
 
   score       Score[]
   scorePlayer ScorePlayer[]
+
+  @@map("player")
 }
 
 model Score {
@@ -203,6 +229,8 @@ model Score {
   createdByPlayer               Player                        @relation(fields: [createdByPlayerId], references: [id])
 
   scorePlayer ScorePlayer[]
+
+  @@map("score")
 }
 
 model ScorePlayer {
@@ -224,6 +252,8 @@ model ScorePlayer {
   platformInputType PlatformInputType? @relation(fields: [platformInputTypeId], references: [id])
 
   scoreWorldRecord ScoreWorldRecord[]
+
+  @@map("score_player")
 }
 
 model ScoreWorldRecord {
@@ -235,6 +265,8 @@ model ScoreWorldRecord {
   endDate DateTime?
 
   scorePlayer ScorePlayer @relation(fields: [scorePlayerId], references: [id])
+
+  @@map("score_world_record")
 }
 
 model User {
@@ -243,9 +275,13 @@ model User {
   email String @unique @db.VarChar(254)
 
   player Player?
+
+  @@map("user")
 }
 
 enum ScoreWorldRecordType {
   WordRecord
   CharacterWorldRecord
+
+  @@map("score_world_record_type")
 }
