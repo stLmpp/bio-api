@@ -1,16 +1,19 @@
 import { type Injector } from '@stlmpp/di';
 import { type RequestHandler } from 'express';
+import { PathItemObject } from 'openapi3-ts/src/model/OpenApi.js';
 
 import { getCorrelationId, set_correlation_id } from './correlation-id.js';
 import { format_headers } from './format-headers.js';
 import { format_query } from './format-query.js';
 import { http_config_schema, type HttpConfig } from './http-config.js';
 import { method_has_body } from './method-has-body.js';
+import { get_openapi_endpoint } from './openapi/get-openapi-end-point.js';
 
 interface InternalHttpHandler {
   end_point: string;
   handler: RequestHandler;
   method: string;
+  openapiPath: PathItemObject;
 }
 
 function parse_path(path: string) {
@@ -40,6 +43,9 @@ export async function get_http_handler(
   const { end_point, method } = parse_path(path);
   const services = await injector.resolveMany(config.imports ?? []);
   return {
+    openapiPath: {
+      [method]: get_openapi_endpoint(config),
+    },
     method,
     end_point,
     handler: async (req, res, next) => {
@@ -69,7 +75,7 @@ export async function get_http_handler(
       const { statusCode, data } = await config.handler(
         {
           params,
-          body, // TODO fix typing
+          body: body as object, // TODO fix typing
           headers,
           query,
         },
