@@ -1,21 +1,26 @@
 import { FactoryProvider, ROOT_INJECTOR } from '@stlmpp/di';
-import { initializeApp, App } from 'firebase-admin/app';
-import { Auth, getAuth } from 'firebase-admin/auth';
-import { Class } from 'type-fest';
+import { FirebaseApp, initializeApp } from 'firebase/app';
+import { Auth, getAuth, connectAuthEmulator } from 'firebase/auth';
 
-function getClazz<T>(): Class<T> {
-  return class {} as never;
-}
+import { getClazz } from './get-class.js';
+import { isDev } from './is-dev.js';
 
 export class FirebaseAuth extends getClazz<Auth>() {}
 
-let app: App | null;
+let app: FirebaseApp | null = null;
 
 ROOT_INJECTOR.register(
   new FactoryProvider(FirebaseAuth, () => {
     if (!app) {
-      app = initializeApp({ projectId: 'biomercs-bcf4c' }); // TODO hardcoded
+      app = initializeApp({
+        projectId: 'biomercs-bcf4c',
+        apiKey: isDev() ? '----' : 'TODO',
+      }); // TODO hardcoded
     }
-    return getAuth(app);
+    const auth = getAuth(app);
+    if (isDev()) {
+      connectAuthEmulator(auth, 'http://localhost:9099');
+    }
+    return auth;
   })
 );

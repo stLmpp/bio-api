@@ -50,3 +50,9 @@ export class InternalServerError extends HttpError {
     super({ ...args, status: StatusCodes.INTERNAL_SERVER_ERROR });
   }
 }
+
+export class UnauthorizedError extends HttpError {
+  constructor(args: Omit<BaseErrorArgs, 'status'>) {
+    super({ ...args, status: StatusCodes.UNAUTHORIZED });
+  }
+}

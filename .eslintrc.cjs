@@ -173,7 +173,7 @@ module.exports = {
       'off',
       { ignore: [0, 1], ignoreArrayIndexes: true, ignoreTypeIndexes: true },
     ],
-    '@typescript-eslint/no-explicit-any': ['error'],
+    '@typescript-eslint/no-explicit-any': ['off'],
     '@typescript-eslint/consistent-type-imports': [
       'off',
       {

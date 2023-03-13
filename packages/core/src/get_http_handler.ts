@@ -1,13 +1,19 @@
 import { type Injector } from '@stlmpp/di';
-import { type RequestHandler } from 'express';
+import { Request, type RequestHandler, Response } from 'express';
 import { PathItemObject } from 'openapi3-ts/src/model/OpenApi.js';
 
 import { getCorrelationId, set_correlation_id } from './correlation-id.js';
+import { ValidationError } from './error.js';
 import { format_headers } from './format-headers.js';
 import { format_query } from './format-query.js';
-import { http_config_schema, type HttpConfig } from './http-config.js';
+import {
+  http_config_schema,
+  type HttpConfig,
+  HttpConfigInternal,
+} from './http-config.js';
 import { method_has_body } from './method-has-body.js';
 import { get_openapi_endpoint } from './openapi/get-openapi-end-point.js';
+import { format_zod_error } from './zod-error-formatter.js';
 
 interface InternalHttpHandler {
   end_point: string;
@@ -26,6 +32,79 @@ function parse_path(path: string) {
     method,
     end_point: `${path_array.join('/')}/`,
   };
+}
+
+async function http_internal_handler(
+  config: HttpConfigInternal,
+  req: Request,
+  res: Response,
+  method: string,
+  services: unknown[]
+): Promise<void> {
+  set_correlation_id();
+  let params: Record<string, string> = {};
+  if (config.request?.params) {
+    const params_parsed = await config.request.params.safeParseAsync(
+      req.params
+    );
+    if (!params_parsed.success) {
+      throw new ValidationError({
+        message: 'Invalid params',
+        error: format_zod_error(params_parsed.error),
+      });
+    }
+    params = params_parsed.data;
+  }
+  let query: Record<string, string> = {};
+  if (config.request?.query) {
+    const query_parsed = await config.request.query.safeParseAsync(
+      format_query(req.query)
+    );
+    if (!query_parsed.success) {
+      throw new ValidationError({
+        message: 'Invalid query',
+        error: format_zod_error(query_parsed.error),
+      });
+    }
+    query = query_parsed.data;
+  }
+  let headers: Record<string, string> = {};
+  if (config.request?.headers) {
+    const headers_parsed = await config.request.headers.safeParseAsync(
+      format_headers(req.headers)
+    );
+    if (!headers_parsed.success) {
+      throw new ValidationError({
+        message: 'Invalid headers',
+        error: format_zod_error(headers_parsed.error),
+      });
+    }
+    headers = headers_parsed.data;
+  }
+  let body: unknown = undefined;
+  if (method_has_body(method) && config.request?.body) {
+    const bodyParsed = await config.request.body.safeParseAsync(req.body);
+    if (!bodyParsed.success) {
+      throw new ValidationError({
+        message: 'Invalid body',
+        error: format_zod_error(bodyParsed.error),
+      });
+    }
+    body = bodyParsed.data;
+  }
+  const { statusCode, data } = await config.handler(
+    {
+      params,
+      body: body as object, // TODO fix typing
+      headers,
+      query,
+    },
+    ...services
+  );
+  res
+    .status(statusCode)
+    .header('x-correlation-id', getCorrelationId())
+    .send(data);
 }
 
 export async function get_http_handler(
@@ -54,40 +133,7 @@ export async function get_http_handler(
         return;
       }
       try {
-        set_correlation_id();
-        let params: Record<string, string> = {};
-        if (config.request?.params) {
-          params = await config.request.params.parseAsync(req.params); // TODO safeParse
-        }
-        let query: Record<string, string> = {};
-        if (config.request?.query) {
-          query = await config.request.query.parseAsync(
-            format_query(req.query)
-          ); // TODO safeParse
-        }
-        let headers: Record<string, string> = {};
-        if (config.request?.headers) {
-          headers = await config.request.headers.parseAsync(
-            format_headers(req.headers)
-          ); // TODO safeParse
-        }
-        let body: unknown = undefined;
-        if (method_has_body(method) && config.request?.body) {
-          body = await config.request.body.parseAsync(req.body);
-        }
-        const { statusCode, data } = await config.handler(
-          {
-            params,
-            body: body as object, // TODO fix typing
-            headers,
-            query,
-          },
-          ...services
-        );
-        res
-          .status(statusCode)
-          .header('x-correlation-id', getCorrelationId())
-          .send(data);
+        await http_internal_handler(config, req, res, method, services);
       } catch (error) {
         console.error(error);
         next(error);

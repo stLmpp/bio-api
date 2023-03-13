@@ -72,7 +72,7 @@ export function httpConfig<
     request: {
       params?: Params;
       query?: Query;
-      Headers?: Headers;
+      headers?: Headers;
       body?: Body;
     };
     response: Response;

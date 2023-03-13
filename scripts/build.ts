@@ -5,6 +5,7 @@ import { basename, join } from 'node:path';
 import { watch } from 'chokidar';
 import { build } from 'esbuild';
 import fastGlob from 'fast-glob';
+import { pathExists } from 'fs-extra';
 import {
   BehaviorSubject,
   debounceTime,
@@ -37,6 +38,8 @@ async function generate_bundle_file(path: string) {
   await rm(`${path}/dist`, { recursive: true, force: true });
   const app_name = path.split('/').pop();
   console.log(`[${app_name}] Started building`);
+  const setup_file_path = `${path}/src/setup.ts`;
+  const setup_file_exists = await pathExists(setup_file_path);
   const packageJson = await readFile(`${path}/package.json`, {
     encoding: 'utf-8',
   }).then((m) => JSON.parse(m) as PackageJson);
@@ -45,21 +48,27 @@ async function generate_bundle_file(path: string) {
     fastGlob(`${path}/${GLOB_QUEUE}`),
   ]);
   const fileContent = `import { Injector } from '@stlmpp/di';
-import { createHttpHandler, createQueueHandler, MAIN_INJECTOR } from '@api/core';
+import { createHttpHandler, createQueueHandler, MAIN_INJECTOR, validateSetup } from '@api/core';
 ${http_paths
   .map(
     (http_path, index) =>
       `import path_${index} from '${http_path.replace(/\.ts$/, '.js')}'`
   )
-  .join(';')};
+  .join(';')}
 ${queue_paths
   .map(
     (queue_path, index) =>
       `import queue_${index} from '${queue_path.replace(/\.ts$/, '.js')}'`
   )
   .join(';')};
-const injector = Injector.create('AppInjector', MAIN_INJECTOR),
-[api,
+
+const injector = Injector.create('AppInjector', MAIN_INJECTOR);
+${
+  setup_file_exists &&
+  `import setup from '${setup_file_path}';
+await validateSetup(setup, injector);`
+}
+const [api,
 ${queue_paths.map((_, index) => `queue_${index}_handler`).join(`,`)}
 ] = await Promise.all([createHttpHandler([
 ${http_paths

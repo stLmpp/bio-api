@@ -10,17 +10,18 @@ import { type Message } from 'firebase-functions/v1/pubsub';
 import helmet from 'helmet';
 import { StatusCodes } from 'http-status-codes';
 import { PathsObject } from 'openapi3-ts';
+import { SwaggerUIOptions } from 'swagger-ui';
 import { serve, setup } from 'swagger-ui-express';
 
+import { error_middleware } from './error-middleware.js';
 import { get_http_handler } from './get_http_handler.js';
 import { get_queue_handler } from './get_queue_handler.js';
 import { type HttpEndPoint } from './http-end-point.type.js';
+import { isDev } from './is-dev.js';
+import { not_found_middleware } from './not-found-middleware.js';
 import { format_openapi_end_point } from './openapi/format-openapi-end-point.js';
 import { get_openapi } from './openapi/get-openapi.js';
 import { type Queue } from './queue.type.js';
-import { SwaggerUIOptions } from 'swagger-ui';
-import { not_found_middleware } from './not-found-middleware.js';
-import { error_middleware } from './error-middleware.js';
 
 export async function createHttpHandler(
   end_points: HttpEndPoint[],
@@ -52,7 +53,10 @@ export async function createHttpHandler(
   const swagger_options: SwaggerUIOptions = {
     persistAuthorization: true,
     displayRequestDuration: true,
-    urls: [],
+    requestInterceptor: (req) => {
+      console.log(req);
+      return req;
+    },
   };
 
   const app = express()
@@ -60,7 +64,7 @@ export async function createHttpHandler(
     .use(compression())
     .use(helmet())
     .use(router);
-  if (process.env.NODE_ENV !== 'production') {
+  if (isDev()) {
     app
       .get('/help/openapi.json', (req, res) => {
         res.status(StatusCodes.OK).send(openapi_object);

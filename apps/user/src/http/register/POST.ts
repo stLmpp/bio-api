@@ -1,8 +1,8 @@
 import {
-  FirebaseAuth,
   httpConfig,
   HttpError,
   InternalServerError,
+  FirebaseAdminAuth,
 } from '@api/core';
 import { UserRepository } from '@api/database';
 import { StatusCodes } from 'http-status-codes';
@@ -19,7 +19,7 @@ export default httpConfig({
   response: z.object({
     id: z.string().uuid(),
   }),
-  imports: [UserRepository, FirebaseAuth],
+  imports: [UserRepository, FirebaseAdminAuth],
   handler: async ({ body }, userRepository, auth) => {
     const user = await userRepository.findFirst({
       where: { OR: [{ email: body.email }, { name: body.username }] },
