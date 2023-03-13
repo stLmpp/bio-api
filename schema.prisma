@@ -10,7 +10,7 @@ generator client {
 model Platform {
   id           String   @id @db.VarChar(10)
   name         String   @unique @db.VarChar(100)
-  creationDate DateTime @default(now())
+  creationDate DateTime @default(now()) @map("creation_date")
 
   platformGameMiniGame PlatformGameMiniGame[]
   platformInputType    PlatformInputType[]
@@ -21,7 +21,7 @@ model Platform {
 model Game {
   id           String   @id @db.VarChar(10)
   name         String   @unique @db.VarChar(100)
-  creationDate DateTime @default(now())
+  creationDate DateTime @default(now()) @map("creation_date")
 
   gameMiniGame GameMiniGame[]
 
@@ -31,7 +31,7 @@ model Game {
 model MiniGame {
   id           Int      @id @default(autoincrement())
   name         String   @unique @db.VarChar(100)
-  creationDate DateTime @default(now())
+  creationDate DateTime @default(now()) @map("creation_date")
 
   gameMiniGame GameMiniGame[]
 
@@ -41,7 +41,7 @@ model MiniGame {
 model InputType {
   id           Int      @id @default(autoincrement())
   name         String   @db.VarChar(100)
-  creationDate DateTime @default(now())
+  creationDate DateTime @default(now()) @map("creation_date")
 
   platformInputType PlatformInputType[]
   player            Player[]
@@ -51,8 +51,8 @@ model InputType {
 
 model Mode {
   id             String   @id @db.VarChar(50)
-  playerQuantity Int      @db.SmallInt()
-  creationDate   DateTime @default(now())
+  playerQuantity Int      @map("player_quantity") @db.SmallInt()
+  creationDate   DateTime @default(now()) @map("creation_date")
 
   platformGameMiniGameMode PlatformGameMiniGameMode[]
 
@@ -62,8 +62,8 @@ model Mode {
 model Stage {
   id           Int      @id @default(autoincrement())
   name         String   @db.VarChar(100)
-  shortName    String   @db.VarChar(20)
-  creationDate DateTime @default(now())
+  shortName    String   @map("short_name") @db.VarChar(20)
+  creationDate DateTime @default(now()) @map("creation_date")
 
   platformGameMiniGameModeStage PlatformGameMiniGameModeStage[]
 
@@ -72,7 +72,7 @@ model Stage {
 
 model Character {
   id           String   @id @db.VarChar(100)
-  creationDate DateTime @default(now())
+  creationDate DateTime @default(now()) @map("creation_date")
 
   characterCostume CharacterCostume[]
 
@@ -82,9 +82,9 @@ model Character {
 model CharacterCostume {
   id           Int      @id @default(autoincrement())
   name         String   @unique @db.VarChar(100)
-  shortName    String   @db.VarChar(20)
-  characterId  String   @db.VarChar(100)
-  creationDate DateTime @default(now())
+  shortName    String   @map("short_name") @db.VarChar(20)
+  characterId  String   @map("character_id") @db.VarChar(100)
+  creationDate DateTime @default(now()) @map("creation_date")
 
   character Character @relation(fields: [characterId], references: [id])
 
@@ -95,9 +95,9 @@ model CharacterCostume {
 
 model GameMiniGame {
   id           Int      @id @default(autoincrement())
-  gameId       String   @db.VarChar(10)
-  miniGameId   Int
-  creationDate DateTime @default(now())
+  gameId       String   @map("game_id") @db.VarChar(10)
+  miniGameId   Int      @map("mini_game_id")
+  creationDate DateTime @default(now()) @map("creation_date")
 
   game     Game     @relation(fields: [gameId], references: [id])
   miniGame MiniGame @relation(fields: [miniGameId], references: [id])
@@ -110,9 +110,9 @@ model GameMiniGame {
 
 model PlatformGameMiniGame {
   id             Int      @id @default(autoincrement())
-  gameMiniGameId Int
-  platformId     String   @db.VarChar(10)
-  creationDate   DateTime @default(now())
+  gameMiniGameId Int      @map("game_mini_game_id")
+  platformId     String   @map("platform_id") @db.VarChar(10)
+  creationDate   DateTime @default(now()) @map("creation_date")
 
   platform     Platform     @relation(fields: [platformId], references: [id])
   gameMiniGame GameMiniGame @relation(fields: [gameMiniGameId], references: [id])
@@ -125,9 +125,9 @@ model PlatformGameMiniGame {
 
 model PlatformGameMiniGameMode {
   id                     Int      @id @default(autoincrement())
-  platformGameMiniGameId Int
-  modeId                 String   @db.VarChar(100)
-  creationDate           DateTime @default(now())
+  platformGameMiniGameId Int      @map("platform_game_mini_game_id")
+  modeId                 String   @map("mode_id") @db.VarChar(100)
+  creationDate           DateTime @default(now()) @map("creation_date")
 
   mode                 Mode                 @relation(fields: [modeId], references: [id])
   platformGameMiniGame PlatformGameMiniGame @relation(fields: [platformGameMiniGameId], references: [id])
@@ -141,9 +141,9 @@ model PlatformGameMiniGameMode {
 
 model PlatformGameMiniGameModeCharacterCostume {
   id                         Int      @id @default(autoincrement())
-  platformGameMiniGameModeId Int
-  characterCostumeId         Int
-  creationDate               DateTime @default(now())
+  platformGameMiniGameModeId Int      @map("platform_game_mini_game_mode_id")
+  characterCostumeId         Int      @map("character_costume_id")
+  creationDate               DateTime @default(now()) @map("creation_date")
 
   characterCostume         CharacterCostume         @relation(fields: [characterCostumeId], references: [id])
   platformGameMiniGameMode PlatformGameMiniGameMode @relation(fields: [platformGameMiniGameModeId], references: [id])
@@ -156,9 +156,9 @@ model PlatformGameMiniGameModeCharacterCostume {
 
 model PlatformGameMiniGameModeStage {
   id                         Int      @id @default(autoincrement())
-  platformGameMiniGameModeId Int
-  stageId                    Int
-  creationDate               DateTime @default(now())
+  platformGameMiniGameModeId Int      @map("platform_game_mini_game_mode_id")
+  stageId                    Int      @map("stage_id")
+  creationDate               DateTime @default(now()) @map("creation_date")
 
   platformGameMiniGameMode PlatformGameMiniGameMode @relation(fields: [platformGameMiniGameModeId], references: [id])
   stage                    Stage                    @relation(fields: [stageId], references: [id])
@@ -171,9 +171,9 @@ model PlatformGameMiniGameModeStage {
 
 model PlatformInputType {
   id           Int      @id @default(autoincrement())
-  platformId   String   @db.VarChar(10)
-  inputTypeId  Int
-  creationDate DateTime @default(now())
+  platformId   String   @map("platform_id") @db.VarChar(10)
+  inputTypeId  Int      @map("input_type_id")
+  creationDate DateTime @default(now()) @map("creation_date")
 
   platform  Platform  @relation(fields: [platformId], references: [id])
   inputType InputType @relation(fields: [inputTypeId], references: [id])
@@ -187,7 +187,7 @@ model PlatformInputType {
 model Region {
   id           String   @id @db.VarChar(20)
   name         String   @db.VarChar(100)
-  creationDate DateTime @default(now())
+  creationDate DateTime @default(now()) @map("creation_date")
 
   player Player[]
 
@@ -197,11 +197,11 @@ model Region {
 model Player {
   id           BigInt   @id @default(autoincrement())
   name         String   @unique @db.VarChar(50)
-  regionId     String   @db.VarChar(20)
-  creationDate DateTime @default(now())
+  regionId     String   @map("region_id") @db.VarChar(20)
+  creationDate DateTime @default(now()) @map("creation_date")
 
-  preferedInputTypeId Int?
-  userId              String? @unique @db.VarChar(36)
+  preferedInputTypeId Int?    @map("prefered_input_type_id")
+  userId              String? @unique @map("user_id") @db.VarChar(36)
 
   region Region @relation(fields: [regionId], references: [id])
 
@@ -216,14 +216,14 @@ model Player {
 
 model Score {
   id                              BigInt   @id @default(autoincrement())
-  platformGameMiniGameModeStageId Int
-  createdByPlayerId               BigInt
+  platformGameMiniGameModeStageId Int      @map("platform_game_mini_game_mode_stage_id")
+  createdByPlayerId               BigInt   @map("created_by_player_id")
   score                           Float
-  creationDate                    DateTime @default(now())
+  creationDate                    DateTime @default(now()) @map("creation_date")
 
-  maxCombo     Int?      @db.SmallInt()
+  maxCombo     Int?      @map("max_combo") @db.SmallInt()
   time         String?   @db.VarChar(8)
-  achievedDate DateTime?
+  achievedDate DateTime? @map("achieved_date")
 
   platformGameMiniGameModeStage PlatformGameMiniGameModeStage @relation(fields: [platformGameMiniGameModeStageId], references: [id])
   createdByPlayer               Player                        @relation(fields: [createdByPlayerId], references: [id])
@@ -235,15 +235,15 @@ model Score {
 
 model ScorePlayer {
   id                                         BigInt   @id @default(autoincrement())
-  scoreId                                    BigInt
-  playerId                                   BigInt
-  platformGameMiniGameModeCharacterCostumeId Int
+  scoreId                                    BigInt   @map("score_id")
+  playerId                                   BigInt   @map("player_id")
+  platformGameMiniGameModeCharacterCostumeId Int      @map("platform_game_mini_game_mode_character_costume_id")
   host                                       Boolean
-  creationDate                               DateTime @default(now())
+  creationDate                               DateTime @default(now()) @map("creation_date")
 
-  bulletKills         Int?    @db.SmallInt()
+  bulletKills         Int?    @map("bullet_kills") @db.SmallInt()
   description         String? @db.VarChar(500)
-  platformInputTypeId Int?
+  platformInputTypeId Int?    @map("platform_input_type_id")
 
   score                                    Score                                    @relation(fields: [scoreId], references: [id])
   player                                   Player                                   @relation(fields: [playerId], references: [id])
@@ -258,11 +258,11 @@ model ScorePlayer {
 
 model ScoreWorldRecord {
   id            BigInt               @id @default(autoincrement())
-  scorePlayerId BigInt
-  creationDate  DateTime             @default(now())
+  scorePlayerId BigInt               @map("score_player_id")
+  creationDate  DateTime             @default(now()) @map("creation_date")
   type          ScoreWorldRecordType
 
-  endDate DateTime?
+  endDate DateTime? @map("end_date")
 
   scorePlayer ScorePlayer @relation(fields: [scorePlayerId], references: [id])
 
