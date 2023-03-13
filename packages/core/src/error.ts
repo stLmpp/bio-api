@@ -15,6 +15,13 @@ export class BaseError extends Error {
 
   public readonly queue: string | undefined;
   public readonly error: unknown | undefined;
+
+  toJSON() {
+    return {
+      ...this,
+      message: this.message,
+    };
+  }
 }
 
 export class HttpError extends BaseError {
@@ -23,7 +30,7 @@ export class HttpError extends BaseError {
     this.status = status;
   }
 
-  private readonly status: StatusCodes;
+  public readonly status: StatusCodes;
 }
 
 export class ValidationError extends HttpError {

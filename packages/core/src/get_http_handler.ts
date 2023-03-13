@@ -53,38 +53,45 @@ export async function get_http_handler(
         next();
         return;
       }
-      set_correlation_id();
-      let params: Record<string, string> = {};
-      if (config.request?.params) {
-        params = await config.request.params.parseAsync(req.params); // TODO safeParse
+      try {
+        set_correlation_id();
+        let params: Record<string, string> = {};
+        if (config.request?.params) {
+          params = await config.request.params.parseAsync(req.params); // TODO safeParse
+        }
+        let query: Record<string, string> = {};
+        if (config.request?.query) {
+          query = await config.request.query.parseAsync(
+            format_query(req.query)
+          ); // TODO safeParse
+        }
+        let headers: Record<string, string> = {};
+        if (config.request?.headers) {
+          headers = await config.request.headers.parseAsync(
+            format_headers(req.headers)
+          ); // TODO safeParse
+        }
+        let body: unknown = undefined;
+        if (method_has_body(method) && config.request?.body) {
+          body = await config.request.body.parseAsync(req.body);
+        }
+        const { statusCode, data } = await config.handler(
+          {
+            params,
+            body: body as object, // TODO fix typing
+            headers,
+            query,
+          },
+          ...services
+        );
+        res
+          .status(statusCode)
+          .header('x-correlation-id', getCorrelationId())
+          .send(data);
+      } catch (error) {
+        console.error(error);
+        next(error);
       }
-      let query: Record<string, string> = {};
-      if (config.request?.query) {
-        query = await config.request.query.parseAsync(format_query(req.query)); // TODO safeParse
-      }
-      let headers: Record<string, string> = {};
-      if (config.request?.headers) {
-        headers = await config.request.headers.parseAsync(
-          format_headers(req.headers)
-        ); // TODO safeParse
-      }
-      let body: unknown = undefined;
-      if (method_has_body(method) && config.request?.body) {
-        body = await config.request.body.parseAsync(req.body);
-      }
-      const { statusCode, data } = await config.handler(
-        {
-          params,
-          body: body as object, // TODO fix typing
-          headers,
-          query,
-        },
-        ...services
-      );
-      res
-        .status(statusCode)
-        .header('x-correlation-id', getCorrelationId())
-        .send(data);
     },
   };
 }

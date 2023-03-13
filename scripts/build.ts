@@ -34,6 +34,7 @@ const [rootPackageJson, corePackageJson] = await Promise.all([
 ]);
 
 async function generate_bundle_file(path: string) {
+  await rm(`${path}/dist`, { recursive: true, force: true });
   const app_name = path.split('/').pop();
   console.log(`[${app_name}] Started building`);
   const packageJson = await readFile(`${path}/package.json`, {
@@ -81,10 +82,10 @@ export {api as '${packageJson.name}', ${queue_paths
     ...Object.keys(rootPackageJson.dependencies ?? {}),
     ...Object.keys(corePackageJson.dependencies ?? {}),
   ];
-  await writeFile(`${path}/src/main.ts`, fileContent);
+  await writeFile(`${path}/src/__auto__main.ts`, fileContent);
   console.log(`[${app_name}] main.ts created`);
   await build({
-    entryPoints: [`${path}/src/main.ts`],
+    entryPoints: [`${path}/src/__auto__main.ts`],
     outfile: `${path}/dist/main.js`,
     sourcemap: 'inline',
     bundle: true,
@@ -106,7 +107,7 @@ export {api as '${packageJson.name}', ${queue_paths
         },
       })
     ),
-    rm(`${path}/src/main.ts`, { force: true, recursive: true }),
+    rm(`${path}/src/__auto__main.ts`, { force: true, recursive: true }),
   ]);
   console.log(`[${app_name}] Build finished`);
 }
@@ -159,18 +160,23 @@ console.log('Building apps');
 await build_apps();
 
 if (IS_WATCH_MODE || IS_DEV_MODE) {
+  const ignored = (path: string): boolean =>
+    basename(path).startsWith('__auto__');
   const watcher_apps = watch(
     apps_initial.map((app) => `apps/${app}/src/**/*`),
-    { ignoreInitial: true }
+    { ignoreInitial: true, ignored }
   );
   const watcher_packages = watch(
     initial_packages.map((pkg) => `packages/${pkg}/src/**/*`),
     {
       ignoreInitial: true,
-      ignored: (path) => basename(path).startsWith('__auto__'),
+      ignored,
     }
   );
-  const watcher_prisma = watch('schema.prisma', { ignoreInitial: true });
+  const watcher_prisma = watch('schema.prisma', {
+    ignoreInitial: true,
+    ignored,
+  });
   watcher_apps.on('all', async (_, path) => {
     console.log({ watcher_apps: path });
     queue$.next([...queue$.value, path]);

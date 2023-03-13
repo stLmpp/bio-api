@@ -18,6 +18,9 @@ import { type HttpEndPoint } from './http-end-point.type.js';
 import { format_openapi_end_point } from './openapi/format-openapi-end-point.js';
 import { get_openapi } from './openapi/get-openapi.js';
 import { type Queue } from './queue.type.js';
+import { SwaggerUIOptions } from 'swagger-ui';
+import { not_found_middleware } from './not-found-middleware.js';
+import { error_middleware } from './error-middleware.js';
 
 export async function createHttpHandler(
   end_points: HttpEndPoint[],
@@ -46,6 +49,11 @@ export async function createHttpHandler(
     };
   }
   const openapi_object = get_openapi(openapi_paths);
+  const swagger_options: SwaggerUIOptions = {
+    persistAuthorization: true,
+    displayRequestDuration: true,
+    urls: [],
+  };
 
   const app = express()
     .use(json())
@@ -61,14 +69,13 @@ export async function createHttpHandler(
         '/help/',
         serve,
         setup(openapi_object, {
-          swaggerOptions: {
-            displayRequestDuration: true,
-            persistAuthorization: true,
-          },
+          swaggerOptions: swagger_options,
         })
       ); // TODO add cors?
   }
-  return https.onRequest(app);
+  return https.onRequest(
+    app.use(not_found_middleware()).use(error_middleware())
+  );
 }
 
 export async function createQueueHandler(

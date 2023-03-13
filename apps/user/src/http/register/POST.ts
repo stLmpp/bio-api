@@ -1,6 +1,10 @@
-import { httpConfig, HttpError, InternalServerError } from '@api/core';
+import {
+  FirebaseAuth,
+  httpConfig,
+  HttpError,
+  InternalServerError,
+} from '@api/core';
 import { UserRepository } from '@api/database';
-import { getAuth } from 'firebase-admin/auth';
 import { StatusCodes } from 'http-status-codes';
 import { z } from 'zod';
 
@@ -15,8 +19,8 @@ export default httpConfig({
   response: z.object({
     id: z.string().uuid(),
   }),
-  imports: [UserRepository],
-  handler: async ({ body }, userRepository) => {
+  imports: [UserRepository, FirebaseAuth],
+  handler: async ({ body }, userRepository, auth) => {
     const user = await userRepository.findFirst({
       where: { OR: [{ email: body.email }, { name: body.username }] },
     });
@@ -26,7 +30,6 @@ export default httpConfig({
         message: 'E-mail or username already taken',
       });
     }
-    const auth = getAuth(); // TODO this should be injected
     const authUser = await auth.createUser({
       disabled: false,
       displayName: body.username,
@@ -54,7 +57,8 @@ export default httpConfig({
           id: userCreated.id,
         },
       };
-    } catch (err) {
+    } catch (error) {
+      console.log(error);
       await auth.deleteUser(authUser.uid);
       throw new InternalServerError({
         message: 'Error while trying to create user',

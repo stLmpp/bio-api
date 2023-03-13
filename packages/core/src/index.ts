@@ -1,3 +1,4 @@
+export { FirebaseAuth } from './firebase.js';
 export { getCorrelationId } from './correlation-id.js';
 export { createHttpHandler, createQueueHandler } from './create-handler.js';
 export {
