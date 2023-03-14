@@ -1,16 +1,22 @@
-import { FirebaseAdminAuth, setup } from '@api/core';
+import { FirebaseAdminAuth, Setup } from '@api/core';
 import { UserRepository } from '@api/database';
+import { Injectable } from '@stlmpp/di';
 
-export default setup({
-  imports: [UserRepository, FirebaseAdminAuth],
-  setup: async (userRepository: UserRepository, auth: FirebaseAdminAuth) => {
+@Injectable()
+export default class UserSetup implements Setup {
+  constructor(
+    private readonly userRepository: UserRepository,
+    private readonly firebaseAdminAuth: FirebaseAdminAuth
+  ) {}
+
+  async setup(): Promise<void> {
     if (DEV_MODE) {
-      const users = await userRepository.findMany();
+      const users = await this.userRepository.findMany();
       for (const user of users) {
         try {
-          await auth.getUser(user.id);
+          await this.firebaseAdminAuth.getUser(user.id);
         } catch (error) {
-          await auth.createUser({
+          await this.firebaseAdminAuth.createUser({
             email: user.email,
             uid: user.id,
             password: '123456',
@@ -21,5 +27,5 @@ export default setup({
         }
       }
     }
-  },
-});
+  }
+}

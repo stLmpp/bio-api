@@ -1,6 +1,5 @@
 import { createHook, executionAsyncId } from 'node:async_hooks';
-
-import { v4 } from 'uuid';
+import { randomUUID } from 'node:crypto';
 
 import { InternalServerError } from './error.js';
 
@@ -25,7 +24,7 @@ export function set_correlation_id(correlation_id?: string): void {
   if (store.has(id)) {
     return;
   }
-  correlation_id ??= v4();
+  correlation_id ??= randomUUID();
   store.set(id, correlation_id);
 }
 

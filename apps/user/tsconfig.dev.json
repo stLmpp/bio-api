@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "declarationDir": "./.meta/types/src"
+  },
+  "include": ["src/http/**/*", "src/queue/**/*", "src/__auto__index.ts"]
+}

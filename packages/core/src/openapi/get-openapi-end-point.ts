@@ -2,13 +2,11 @@ import { generateSchema } from '@anatine/zod-openapi';
 import { StatusCodes } from 'http-status-codes';
 import { OperationObject } from 'openapi3-ts';
 
-import { HttpConfigInternal } from '../http-config.js';
+import { HttpConfig } from '../http-config.js';
 
 import { get_parameters } from './get-parameters.js';
 
-export function get_openapi_endpoint(
-  http_config: HttpConfigInternal
-): OperationObject {
+export function get_openapi_endpoint(http_config: HttpConfig): OperationObject {
   const { request, response, errors, description, summary, tags } = http_config;
   const operation: OperationObject = {
     description,

@@ -15,7 +15,10 @@ type QueueConfigInput = z.input<typeof queue_config_schema>;
 type QueueConfigInternal = z.infer<typeof queue_config_schema>;
 
 export function queueConfig<Request extends ZodType, Response extends ZodType>(
-  config: Except<QueueConfigInput, 'request' | 'response' | 'handler' | 'imports'> & {
+  config: Except<
+    QueueConfigInput,
+    'request' | 'response' | 'handler' | 'imports'
+  > & {
     request: Request;
     response: Response;
     imports?: [];
@@ -28,3 +31,5 @@ export function queueConfig<Request extends ZodType, Response extends ZodType>(
 }
 
 export { QueueConfigInput as QueueConfig, QueueConfigInternal };
+
+// TODO refactor to Class based like the HttpConfig

@@ -28,7 +28,12 @@ export async function createHttpHandler(
 ): Promise<HttpsFunction> {
   const handlers = await Promise.all(
     end_points.map((http_end_point) =>
-      get_http_handler(http_end_point.config, http_end_point.path, injector)
+      get_http_handler(
+        http_end_point.type,
+        http_end_point.config,
+        http_end_point.path,
+        injector
+      )
     )
   );
   handlers.sort(

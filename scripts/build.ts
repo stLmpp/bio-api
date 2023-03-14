@@ -1,11 +1,10 @@
 import { spawn } from 'node:child_process';
-import { readdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { readdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { basename, join } from 'node:path';
 
 import { watch } from 'chokidar';
-import { build } from 'esbuild';
 import fastGlob from 'fast-glob';
-import { pathExists } from 'fs-extra';
+import { outputFile, pathExists } from 'fs-extra';
 import {
   BehaviorSubject,
   debounceTime,
@@ -14,7 +13,8 @@ import {
   Subject,
   switchMap,
 } from 'rxjs';
-import { type PackageJson } from 'type-fest';
+import { build } from 'tsup';
+import { type PackageJson, TsConfigJson } from 'type-fest';
 
 import { spawnAsync } from './util.js';
 
@@ -22,57 +22,117 @@ import { spawnAsync } from './util.js';
 
 const IS_DEV_MODE = process.argv.some((arg) => arg === '--dev');
 const IS_WATCH_MODE = process.argv.some((arg) => arg === '--watch');
+const SKIP_MINIFY = process.argv.some((arg) => arg === '--skip-minify');
 const GLOB_HTTP = 'src/http/**/{GET,POST,PUT,PATCH,DELETE}.ts';
 const GLOB_QUEUE = 'src/queue/*.ts';
 
-const [rootPackageJson, corePackageJson] = await Promise.all([
-  readFile(join(process.cwd(), 'package.json'), { encoding: 'utf-8' }).then(
-    (m) => JSON.parse(m) as PackageJson
-  ),
-  readFile(join(process.cwd(), 'packages/core/package.json'), {
-    encoding: 'utf-8',
-  }).then((m) => JSON.parse(m) as PackageJson),
-]);
+const rootPackageJson = await readFile(join(process.cwd(), 'package.json'), {
+  encoding: 'utf-8',
+}).then((m) => JSON.parse(m) as PackageJson);
 
-async function generate_bundle_file(path: string) {
-  await rm(`${path}/dist`, { recursive: true, force: true });
+async function generate_bundle_file(path: string): Promise<void> {
   const app_name = path.split('/').pop();
   console.log(`[${app_name}] Started building`);
-  const setup_file_path = `${path}/src/setup.ts`;
-  const setup_file_exists = await pathExists(setup_file_path);
-  const packageJson = await readFile(`${path}/package.json`, {
-    encoding: 'utf-8',
-  }).then((m) => JSON.parse(m) as PackageJson);
-  const [http_paths, queue_paths] = await Promise.all([
-    fastGlob(`${path}/${GLOB_HTTP}`),
-    fastGlob(`${path}/${GLOB_QUEUE}`),
+  await Promise.all([
+    rm(`${path}/dist`, { recursive: true, force: true }),
+    rm(`${path}/.meta`, { recursive: true, force: true }),
   ]);
+  const setup_file_path = `${path}/src/setup.ts`;
+  const [setup_file_exists, packageJson, http_paths, queue_paths] =
+    await Promise.all([
+      pathExists(setup_file_path),
+      readFile(`${path}/package.json`, {
+        encoding: 'utf-8',
+      }).then((m) => JSON.parse(m) as PackageJson),
+      fastGlob(`${path}/${GLOB_HTTP}`),
+      fastGlob(`${path}/${GLOB_QUEUE}`),
+      (IS_DEV_MODE || IS_WATCH_MODE) &&
+        outputFile(`${path}/src/__auto__index.ts`, 'export {};'),
+      outputFile(
+        `${path}/.meta/tsconfig.json`,
+        JSON.stringify({
+          extends: '../../../tsconfig.base.json',
+          compilerOptions: {
+            rootDirs: ['..', './types'],
+          },
+        } satisfies TsConfigJson)
+      ),
+    ]);
+  if (IS_DEV_MODE || IS_WATCH_MODE) {
+    await spawnAsync('tsc', ['-p', `${path}/tsconfig.dev.json`], {});
+    await Promise.all(
+      http_paths.map(async (http_path) => {
+        const method = basename(http_path).replace(/\.ts$/, '');
+        const meta_path = http_path
+          .replace('src/', '.meta/types/src/')
+          .replace(method + '.ts', '');
+        const dts_path = meta_path + method + '.d.ts';
+        const meta_dts_path = meta_path + `$${method}.d.ts`;
+        await Promise.all([
+          rename(dts_path, meta_path + `__${method}.d.ts`),
+          writeFile(
+            meta_dts_path,
+            `import { config } from './__${method}.js';
+import { z } from 'zod';
+import { StatusCodes } from 'http-status-codes';
+
+type Config = typeof config;
+
+export declare type Result = {
+  statusCode: StatusCodes;
+  data: z.input<Config['response']>;
+};
+
+declare type ConfigRequest = Required<Config['request']>;
+
+export declare type Input = {
+  [K in keyof ConfigRequest]: z.infer<ConfigRequest[K]>;
+};
+
+export declare interface HttpConfig {
+  handle(input: Input): Promise<Result> | Result;
+}
+`
+          ),
+        ]);
+      })
+    );
+  }
   const fileContent = `import { Injector } from '@stlmpp/di';
-import { createHttpHandler, createQueueHandler, MAIN_INJECTOR, validateSetup } from '@api/core';
+import { createHttpHandler, createQueueHandler, MAIN_INJECTOR } from '@api/core';
 ${http_paths
   .map(
     (http_path, index) =>
-      `import path_${index} from '${http_path.replace(/\.ts$/, '.js')}'`
+      `import path_${index}, { config as path_config_${index} } from '${http_path.replace(
+        /\.ts$/,
+        '.js'
+      )}'`
   )
-  .join(';')}
+  .join(';')}${http_paths.length ? ';' : ''}
 ${queue_paths
   .map(
     (queue_path, index) =>
       `import queue_${index} from '${queue_path.replace(/\.ts$/, '.js')}'`
   )
-  .join(';')};
+  .join(';')}${queue_paths.length ? ';' : ''}
 
 const injector = Injector.create('AppInjector', MAIN_INJECTOR);
+injector.register([${http_paths.map((_, index) => `path_${index}`).join(',')}]);
 ${
   setup_file_exists &&
-  `import setup from '${setup_file_path}';
-await validateSetup(setup, injector);`
+  `import Setup from '${setup_file_path.replace(/\.ts$/, '.js')}';
+injector.register(Setup);
+const setup = await injector.resolve(Setup);  
+await setup.setup();`
 }
 const [api,
 ${queue_paths.map((_, index) => `queue_${index}_handler`).join(`,`)}
 ] = await Promise.all([createHttpHandler([
 ${http_paths
-  .map((http_path, index) => `{config:path_${index},path:'${http_path}'}`)
+  .map(
+    (http_path, index) =>
+      `{config:path_config_${index},path:'${http_path}', type: path_${index}}`
+  )
   .join(',')}], injector),
 ${queue_paths
   .map(
@@ -89,22 +149,26 @@ export {api as '${packageJson.name}', ${queue_paths
   const dependencies = [
     ...Object.keys(packageJson.dependencies ?? {}),
     ...Object.keys(rootPackageJson.dependencies ?? {}),
-    ...Object.keys(corePackageJson.dependencies ?? {}),
   ].filter((pkg) => !pkg.startsWith('@api/'));
   await writeFile(`${path}/src/__auto__main.ts`, fileContent);
   console.log(`[${app_name}] main.ts created`);
   await build({
-    entryPoints: [`${path}/src/__auto__main.ts`],
-    outfile: `${path}/dist/main.js`,
+    entry: {
+      main: `${path}/src/__auto__main.ts`,
+    },
+    outDir: `${path}/dist`,
     sourcemap: 'inline',
     bundle: true,
     format: 'esm',
     platform: 'node',
-    minify: true,
+    target: 'node18',
+    minify: SKIP_MINIFY ? false : !IS_DEV_MODE,
     external: dependencies,
     define: {
       DEV_MODE: String(IS_DEV_MODE),
     },
+    tsconfig: `${path}/tsconfig.json`,
+    silent: true,
   });
   console.log(`[${app_name}] Bundle finished`);
   await Promise.all([
@@ -115,11 +179,11 @@ export {api as '${packageJson.name}', ${queue_paths
         dependencies: {
           ...packageJson.dependencies,
           ...rootPackageJson.dependencies,
-          ...corePackageJson.dependencies,
         },
       })
     ),
     rm(`${path}/src/__auto__main.ts`, { force: true, recursive: true }),
+    rm(`${path}/src/__auto__index.ts`, { force: true }),
   ]);
   console.log(`[${app_name}] Build finished`);
 }
@@ -149,8 +213,8 @@ async function build_apps(apps?: string[]): Promise<void> {
   apps ??= await get_all_apps();
   await Promise.all(
     apps.map((app) =>
-      generate_bundle_file(`apps/${app}`).catch(() => {
-        console.error(`[${app}] Failed to build`);
+      generate_bundle_file(`apps/${app}`).catch((err) => {
+        console.error(`[${app}] Failed to build`, err);
       })
     )
   );

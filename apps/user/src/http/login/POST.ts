@@ -1,34 +1,22 @@
 import { FirebaseAuth, httpConfig, UnauthorizedError } from '@api/core';
 import { UserRepository } from '@api/database';
+import { Injectable } from '@stlmpp/di';
 import { FirebaseError } from 'firebase/app';
-import { AuthErrorCodes, signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, AuthErrorCodes } from 'firebase/auth';
 import { StatusCodes } from 'http-status-codes';
 import { z } from 'zod';
 
-export default httpConfig({
-  request: {
-    body: z.object({
-      usernameOrEmail: z.union([
-        z.string().email().max(254),
-        z.string().max(50),
-      ]),
-      password: z.string(),
-    }),
-  },
-  response: z.object({
-    accessToken: z.string(),
-    user: z.object({
-      id: z.string().max(100),
-      name: z.string().max(50),
-    }),
-    player: z.object({
-      id: z.bigint(),
-      name: z.string().max(50),
-    }),
-  }),
-  imports: [UserRepository, FirebaseAuth],
-  handler: async ({ body }, userRepository, auth) => {
-    const user = await userRepository.findFirst({
+import { HttpConfig, Input, Result } from './$POST.js';
+
+@Injectable()
+export default class LoginPost implements HttpConfig {
+  constructor(
+    private readonly userRepository: UserRepository,
+    private readonly firebaseAuth: FirebaseAuth
+  ) {}
+
+  async handle({ body }: Input): Promise<Result> {
+    const user = await this.userRepository.findFirst({
       where: {
         OR: [{ name: body.usernameOrEmail }, { email: body.usernameOrEmail }],
       },
@@ -43,7 +31,7 @@ export default httpConfig({
     }
     try {
       const authUser = await signInWithEmailAndPassword(
-        auth,
+        this.firebaseAuth,
         user.email,
         body.password
       );
@@ -74,5 +62,28 @@ export default httpConfig({
       }
       throw error;
     }
+  }
+}
+
+export const config = httpConfig({
+  request: {
+    body: z.object({
+      usernameOrEmail: z.union([
+        z.string().email().max(254),
+        z.string().max(50),
+      ]),
+      password: z.string(),
+    }),
   },
+  response: z.object({
+    accessToken: z.string(),
+    user: z.object({
+      id: z.string().max(100),
+      name: z.string().max(50),
+    }),
+    player: z.object({
+      id: z.bigint(),
+      name: z.string().max(50),
+    }),
+  }),
 });

@@ -15,6 +15,6 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsup && tsx dts.plugin.ts"
+    "build": "tsup"
   }
 }

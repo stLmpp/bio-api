@@ -5,23 +5,21 @@ import {
   FirebaseAdminAuth,
 } from '@api/core';
 import { UserRepository } from '@api/database';
+import { Injectable } from '@stlmpp/di';
 import { StatusCodes } from 'http-status-codes';
 import { z } from 'zod';
 
-export default httpConfig({
-  request: {
-    body: z.object({
-      email: z.string().email().max(254),
-      username: z.string().max(50),
-      password: z.string(),
-    }),
-  },
-  response: z.object({
-    id: z.string().uuid(),
-  }),
-  imports: [UserRepository, FirebaseAdminAuth],
-  handler: async ({ body }, userRepository, auth) => {
-    const user = await userRepository.findFirst({
+import { HttpConfig, Input, Result } from './$POST.js';
+
+@Injectable()
+export default class RegisterPost implements HttpConfig {
+  constructor(
+    private readonly userRepository: UserRepository,
+    private readonly firebaseAdminAuth: FirebaseAdminAuth
+  ) {}
+
+  async handle({ body }: Input): Promise<Result> {
+    const user = await this.userRepository.findFirst({
       where: { OR: [{ email: body.email }, { name: body.username }] },
     });
     if (user) {
@@ -30,7 +28,7 @@ export default httpConfig({
         message: 'E-mail or username already taken',
       });
     }
-    const authUser = await auth.createUser({
+    const authUser = await this.firebaseAdminAuth.createUser({
       disabled: false,
       displayName: body.username,
       email: body.email,
@@ -38,7 +36,7 @@ export default httpConfig({
       password: body.password,
     });
     try {
-      const userCreated = await userRepository.create({
+      const userCreated = await this.userRepository.create({
         data: {
           email: body.email,
           name: body.username,
@@ -59,10 +57,23 @@ export default httpConfig({
       };
     } catch (error) {
       console.log(error);
-      await auth.deleteUser(authUser.uid);
+      await this.firebaseAdminAuth.deleteUser(authUser.uid);
       throw new InternalServerError({
         message: 'Error while trying to create user',
       });
     }
+  }
+}
+
+export const config = httpConfig({
+  request: {
+    body: z.object({
+      email: z.string().email().max(254),
+      username: z.string().max(50),
+      password: z.string(),
+    }),
   },
+  response: z.object({
+    id: z.string().uuid(),
+  }),
 });

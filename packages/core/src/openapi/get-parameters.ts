@@ -7,7 +7,7 @@ import {
 import { ZodObject } from 'zod';
 
 import { type Entries } from '../entries.js';
-import { HttpConfigInternal, HttpConfigRequest } from '../http-config.js';
+import { HttpConfig } from '../http-config.js';
 import { ParamType } from '../param-type.js';
 
 type Parameters = Record<
@@ -22,13 +22,13 @@ const param_type_to_swagger_parameter_type_map = {
 } satisfies Record<Exclude<ParamType, 'body'>, ParameterLocation>;
 
 function set_parameters_from_request_validation(
-  request: HttpConfigRequest | undefined,
+  request: HttpConfig['request'] | undefined,
   parameters: Parameters
 ): void {
   if (!request) {
     return;
   }
-  const entries = Object.entries(request) as Entries<HttpConfigRequest>;
+  const entries = Object.entries(request) as Entries<HttpConfig['request']>;
   for (const [key, value] of entries) {
     if (key === 'body' || !(value instanceof ZodObject)) {
       continue;
@@ -54,7 +54,7 @@ function set_parameters_from_request_validation(
   }
 }
 
-export function get_parameters(config: HttpConfigInternal): ParameterObject[] {
+export function get_parameters(config: HttpConfig): ParameterObject[] {
   const parameters: Parameters = {
     headers: {},
     query: {},

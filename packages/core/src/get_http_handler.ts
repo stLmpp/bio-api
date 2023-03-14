@@ -1,16 +1,13 @@
 import { type Injector } from '@stlmpp/di';
 import { Request, type RequestHandler, Response } from 'express';
 import { PathItemObject } from 'openapi3-ts/src/model/OpenApi.js';
+import { Class } from 'type-fest';
 
 import { getCorrelationId, set_correlation_id } from './correlation-id.js';
 import { ValidationError } from './error.js';
 import { format_headers } from './format-headers.js';
 import { format_query } from './format-query.js';
-import {
-  http_config_schema,
-  type HttpConfig,
-  HttpConfigInternal,
-} from './http-config.js';
+import { HttpConfig } from './http-config.js';
 import { method_has_body } from './method-has-body.js';
 import { get_openapi_endpoint } from './openapi/get-openapi-end-point.js';
 import { format_zod_error } from './zod-error-formatter.js';
@@ -35,11 +32,11 @@ function parse_path(path: string) {
 }
 
 async function http_internal_handler(
-  config: HttpConfigInternal,
+  controller: { handle: (args: any) => any }, // TODO better typing
+  config: HttpConfig,
   req: Request,
   res: Response,
-  method: string,
-  services: unknown[]
+  method: string
 ): Promise<void> {
   set_correlation_id();
   let params: Record<string, string> = {};
@@ -92,15 +89,12 @@ async function http_internal_handler(
     }
     body = bodyParsed.data;
   }
-  const { statusCode, data } = await config.handler(
-    {
-      params,
-      body: body as object, // TODO fix typing
-      headers,
-      query,
-    },
-    ...services
-  );
+  const { statusCode, data } = await controller.handle({
+    params,
+    body: body as object, // TODO fix typing
+    headers,
+    query,
+  });
   res
     .status(statusCode)
     .header('x-correlation-id', getCorrelationId())
@@ -108,19 +102,13 @@ async function http_internal_handler(
 }
 
 export async function get_http_handler(
-  unparsed_config: HttpConfig,
+  type: Class<{ handle: (arg: any) => any }>, // TODO better typing
+  config: HttpConfig,
   path: string,
   injector: Injector
 ): Promise<InternalHttpHandler> {
-  const parsed_config = await http_config_schema.safeParseAsync(
-    unparsed_config
-  );
-  if (!parsed_config.success) {
-    throw new Error(`${path} has invalid config`); // TODO better error message
-  }
-  const config = parsed_config.data;
   const { end_point, method } = parse_path(path);
-  const services = await injector.resolveMany(config.imports ?? []);
+  const controller = await injector.resolve(type);
   return {
     openapiPath: {
       [method]: get_openapi_endpoint(config),
@@ -133,7 +121,7 @@ export async function get_http_handler(
         return;
       }
       try {
-        await http_internal_handler(config, req, res, method, services);
+        await http_internal_handler(controller, config, req, res, method);
       } catch (error) {
         console.error(error);
         next(error);

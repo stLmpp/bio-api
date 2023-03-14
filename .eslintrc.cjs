@@ -182,6 +182,7 @@ module.exports = {
         disallowTypeAnnotations: false,
       },
     ],
+    'import/no-unresolved': ['off']
   },
   settings: {
     'import/resolver': {
