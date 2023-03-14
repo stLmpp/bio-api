@@ -107,6 +107,7 @@ export async function get_http_handler(
   path: string,
   injector: Injector
 ): Promise<InternalHttpHandler> {
+  // TODO give warning if type is not decorated with @Injectable()
   const { end_point, method } = parse_path(path);
   const controller = await injector.resolve(type);
   return {
